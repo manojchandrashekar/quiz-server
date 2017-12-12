@@ -1,8 +1,9 @@
 'use strict';
 
+var fs = require('fs');
+var https = require('https');
 var express = require('express');
 var app = express();
-var server = require('http').createServer(app);
 var bodyParser = require('body-parser');
 var uuid = require('node-uuid').v4;
 var LRU = require('lru-cache');
@@ -11,6 +12,14 @@ var cacheOptions = {
     maxAge: 1000 * 60 * 60 * 60 * 24 * 7
 };
 var cache = LRU(cacheOptions);
+
+var ServerOptions = {
+    key: fs.readFileSync(__dirname + '/server.key'),
+    cert: fs.readFileSync(__dirname + '/server.crt'),
+    requestCert: false,
+    rejectUnauthorized: false
+};
+var server = https.createServer(ServerOptions, app);
 
 app.use(bodyParser.urlencoded({
     extended: false
@@ -46,6 +55,19 @@ app.get('/isReady/:gameId', function (req, res) {
     if (gameExists(gameId)) {
         var gameData = cache.get(gameId);
         res.send(gameData.started);
+    } else {
+        res.sendStatus(404);
+    }
+});
+
+app.post('/assess', function (req, res) {
+    var gameId = req.gameId;
+    var userId = req.userId;
+    var gameUpdateData = req.gameData;
+
+    if (gameExists(gameId)) {
+        var gameData = cache.get(gameId);
+
     } else {
         res.sendStatus(404);
     }
@@ -98,4 +120,6 @@ var joinGame = function (gameId, deviceId, userId, contentId) {
     return gameId;
 };
 
-server.listen(7819);
+server.listen(7819, function () {
+    console.log("Quiz-server started at port 7819!");
+});
