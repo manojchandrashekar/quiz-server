@@ -22,7 +22,7 @@ var ServerOptions = {
 var server = https.createServer(ServerOptions, app);
 
 app.use(bodyParser.urlencoded({
-    extended: false
+    extended: true
 }));
 
 app.use(bodyParser.json());
@@ -30,17 +30,17 @@ app.use(bodyParser.json());
 app.use(express.static(__dirname + '/node_modules'));
 
 app.get('/', function (req, res, next) {
+    res.set('Content-Type', 'application/json');
     res.send(JSON.stringify(cache.dump()));
 });
 
 app.post('/connect', function (req, res, next) {
-    var deviceId = req.deviceId;
-    var userId = req.userId;
-    var contentId = req.contentId;
+    var deviceId = req.body.deviceId;
+    var userId = req.body.userId;
+    var contentId = req.body.contentId;
 
     //Check if game already exists for this content, if yes, join it.
     var game = gameExistsForContent(contentId);
-    console.log(game);
     if (game !== false) {
         res.send(joinGame(game.gameId, deviceId, userId, contentId));
     }
@@ -61,13 +61,32 @@ app.get('/isReady/:gameId', function (req, res) {
 });
 
 app.post('/assess', function (req, res) {
-    var gameId = req.gameId;
-    var userId = req.userId;
-    var gameUpdateData = req.gameData;
+    var gameId = req.body.gameId;
+    var userId = req.body.userId;
+    var quizData = req.body.quizData;
 
     if (gameExists(gameId)) {
         var gameData = cache.get(gameId);
+        if (gameData.started === true) {
+            var data = {
+                userId: userId,
+                data: quizData
+            };
+            gameData.quizData.push(data);
+            cache.set(gameId, gameData);
+            res.send(gameData);
+        } else {
+            res.sendStatus(404);
+        }
+    } else {
+        res.sendStatus(404);
+    }
+});
 
+app.get('/assess/:gameId', function (req, res) {
+    var gameId = req.params.gameId;
+    if (gameExists(gameId)) {
+        res.send(cache.get(gameId));
     } else {
         res.sendStatus(404);
     }
@@ -92,24 +111,21 @@ var createGame = function (deviceId, userId, contentId) {
     var gameData = {
         gameId: gameId,
         contentId: contentId,
-        users: [
-            {
-                deviceId: deviceId,
-                userId: userId
-            }
-        ],
+        users: [],
         started: false,
         quizData: []
     };
+    gameData.users.push({
+        deviceId: deviceId,
+        userId: userId
+    });
 
     cache.set(gameId, gameData);
     return gameId;
 };
 
 var joinGame = function (gameId, deviceId, userId, contentId) {
-    console.log(gameId);
     var gameData = cache.get(gameId);
-    console.log(gameData);
     gameData.users.push({
         deviceId: deviceId,
         userId: userId
