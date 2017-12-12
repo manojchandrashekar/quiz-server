@@ -1,0 +1,25 @@
+{
+  "name": "quiz-server",
+  "version": "1.0.0",
+  "description": "A socket.io based server-side component for Ekstep quiz plugin",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://manojchandrashekar@github.com/manojchandrashekar/quiz-server.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/manojchandrashekar/quiz-server/issues"
+  },
+  "homepage": "https://github.com/manojchandrashekar/quiz-server#readme",
+  "dependencies": {
+    "express": "^4.16.2",
+    "lru-cache": "^4.1.1",
+    "node-uuid": "^1.4.8",
+    "socket.io": "^2.0.4"
+  }
+}
