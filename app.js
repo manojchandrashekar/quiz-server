@@ -29,9 +29,11 @@ app.post('/connect', function (req, res, next) {
     var userId = req.userId;
     var contentId = req.contentId;
 
-    //Check if game already exists for this content
-    if (gameExistsForContent(contentId)) {
-        res.send('Game already exists');
+    //Check if game already exists for this content, if yes, join it.
+    var game = gameExistsForContent(contentId);
+    console.log(game);
+    if (game !== false) {
+        res.send(joinGame(game.gameId, deviceId, userId, contentId));
     }
     //Else, create a new game and send the game Id
     else {
@@ -39,18 +41,27 @@ app.post('/connect', function (req, res, next) {
     }
 });
 
-var gameExistsForContent = function(contentId) {
+app.get('/isReady/:gameId', function (req, res) {
+    var gameId = req.params.gameId;
+    if (gameExists(gameId)) {
+        var gameData = cache.get(gameId);
+        res.send(gameData.started);
+    } else {
+        res.sendStatus(404);
+    }
+});
+
+var gameExistsForContent = function (contentId) {
     var gameFound = false;
     cache.forEach(function (value, key, cache) {
-        console.log(value);
-        if(value.contentId === contentId) {
-            gameFound = true;
+        if (value.contentId === contentId && value.started === false) {
+            gameFound = value;
         }
     });
     return gameFound;
 };
 
-var gameExists = function (contentId) {
+var gameExists = function (gameId) {
     return cache.has(gameId);
 };
 
@@ -68,6 +79,20 @@ var createGame = function (deviceId, userId, contentId) {
         started: false,
         quizData: []
     };
+
+    cache.set(gameId, gameData);
+    return gameId;
+};
+
+var joinGame = function (gameId, deviceId, userId, contentId) {
+    console.log(gameId);
+    var gameData = cache.get(gameId);
+    console.log(gameData);
+    gameData.users.push({
+        deviceId: deviceId,
+        userId: userId
+    });
+    gameData.started = true;
 
     cache.set(gameId, gameData);
     return gameId;
